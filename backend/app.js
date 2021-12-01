@@ -1,9 +1,25 @@
+const {postsPath} = require('./constants');
+const {handleSave, handleGet, handleDelete, handleUpdate} = require('./utils/database');
 const express = require('express');
-const {postsPath, posts} = require('./constants');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const Post = require('./models/post');
 
 const app = express();
 
+mongoose.connect(
+    'mongodb+srv://chernikovmax:DerjUds3@mean-learning.rgupq.mongodb.net/node-angular?retryWrites=true&w=majority',
+    {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    }
+)
+    .then(() => {
+        console.log('Connected to DataBase!');
+    })
+    .catch(err => {
+        console.error('Connection failed!', err.message);
+    });
 app.use(bodyParser.json());
 
 app.use((req, resp, next) => {
@@ -21,52 +37,33 @@ app.use((req, resp, next) => {
 
 app.get(postsPath, (req, resp) => {
     console.log(['New get request', req.body]);
-    resp.status(200).json({
-        message: 'Post added successfully',
-        posts
-    });
+    handleGet(Post, resp, 'Post added successfully');
 });
 
 app.post(postsPath, (req, resp) => {
     console.log(['New post request', req.body]);
-    const post = req.body;
+    const {title, content} = req.body;
+    const post = new Post({
+        title,
+        content
+    });
     console.log('New post was created', post);
-    posts.push(post);
-    resp.status(201).json({
+    handleSave(post, resp, {
         message: 'Post was successfully added',
-        id: posts.length
+        id: post._id
     });
 });
 
-app.delete(postsPath, (req, resp) => {
+app.delete(`${postsPath}/:id`, (req, resp) => {
     console.log(['New delete request', req.body]);
-    const id = req.body.postId;
-    console.log('ID:', id);
-    posts.splice(posts.findIndex(p => p.id === id), 1);
-    const message = `Post with id "${id}" was deleted`;
-    console.log(message);
-    resp.status(201).json({
-        message,
-    });
+    const {id} = req.params;
+    handleDelete(Post, resp, id);
 });
 
 app.patch(postsPath, (req, resp) => {
     console.log(['New patch request', req.body]);
     const post = req.body;
-    const storedPost = posts.find(p => p.id === post.id);
-    if (!storedPost) {
-        return resp.status(400).json({
-            message: `Can't find post with id "${post.id}"`,
-        });
-    }
-    console.log(JSON.parse(JSON.stringify(post)));
-
-    Object.assign(storedPost, post);
-    const message = `Post with id "${post.id}" was updated`;
-    console.log(message);
-    resp.status(201).json({
-        message,
-    });
+    handleUpdate(Post, resp, post.id,{title: post.title, content: post.content});
 });
 
 module.exports = app;
