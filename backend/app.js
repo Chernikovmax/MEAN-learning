@@ -59,7 +59,7 @@ app.get(emailSchedulePath, (req, resp) => {
     Email.find()
         .then((data) => {
             console.log('Got email schedules from DB!');
-            resp.status(200).json({data});
+            resp.status(200).json({emailSchedules: data});
         })
         .catch((err) => {
             console.error('Failed to get email schedules from DB!', err.message);
